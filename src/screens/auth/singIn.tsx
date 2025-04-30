@@ -6,13 +6,18 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-
+import app from '../../../utils/firebase';
+import { colors } from '../../../utils/colors';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 const SignInScreen = ({ navigation }:any) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const auth = getAuth();
+  const auth = getAuth(app);
   const provider = new GoogleAuthProvider();
 
   const signInWithEmail = async () => {
@@ -34,77 +39,157 @@ const SignInScreen = ({ navigation }:any) => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Sign In</Text>
-      
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-      
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
+    <SafeAreaView style={styles.container}>
+    <StatusBar style="auto" />
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.keyboardAvoidView}
+    >
+      <View style={styles.formContainer}>
+        <Text style={styles.title}>Sign In</Text>
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={signInWithEmail}>
-        <Text style={styles.buttonText}>Sign In with Email</Text>
-      </TouchableOpacity>
+        
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+        
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
+        
 
-      <TouchableOpacity
-        style={[styles.button, styles.googleButton]}
-        onPress={signInWithGoogle}>
-        <Text style={styles.buttonText}>Sign In with Google</Text>
-      </TouchableOpacity>
-    </View>
+        
+        <TouchableOpacity 
+          style={styles.signUpButton} 
+          onPress={signInWithEmail}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.signUpButtonText}>Sign In</Text>
+        </TouchableOpacity>
+        
+        <View style={styles.signInContainer}>
+          <Text style={styles.signInText}>Don't have an account? </Text>
+          <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
+            <Text style={styles.signInLink}>Sign Up</Text>
+          </TouchableOpacity>
+        </View>
+        
+        <View style={styles.dividerContainer}>
+          <View style={styles.divider} />
+          <Text style={styles.dividerText}>Or</Text>
+          <View style={styles.divider} />
+        </View>
+        
+        <TouchableOpacity 
+          style={styles.googleButton} 
+          onPress={()=>console.log("google signed in")}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.googleLogo}>G</Text>
+          <Text style={styles.googleButtonText}>Sign in with Google</Text>
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView> 
+  </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  input: {
-    height: 50,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    marginBottom: 15,
-    paddingHorizontal: 10,
-  },
-  button: {
-    backgroundColor: '#007AFF',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  googleButton: {
-    backgroundColor: '#DB4437',
-  },
-  buttonText: {
-    color: '#fff',
-    textAlign: 'center',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});
+    container: {
+        flex: 1,
+        backgroundColor: colors.background,
+      },
+      keyboardAvoidView: {
+        flex: 1,
+      },
+      formContainer: {
+        flex: 1,
+        paddingHorizontal: 20,
+        justifyContent: 'center',
+        paddingBottom: 40,
+      },
+      title: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginBottom: 24,
+        textAlign: 'center',
+      },
+      input: {
+        backgroundColor: 'white',
+        borderRadius: 15,
+        padding: 15,
+        marginBottom: 12,
+        fontSize: 16,
+        borderWidth:1,
+        borderColor:colors.border
+      },
+      signUpButton: {
+        backgroundColor: colors.primary,
+        padding: 15,
+        borderRadius: 15,
+        alignItems: 'center',
+        marginTop: 10,
+      },
+      signUpButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: '600',
+      },
+      signInContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        marginTop: 16,
+      },
+      signInText: {
+        color: '#666',
+      },
+      signInLink: {
+        color: '#00c853',
+        fontWeight: '600',
+      },
+      dividerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: 20,
+      },
+      divider: {
+        flex: 1,
+        height: 1,
+        backgroundColor: '#ddd',
+      },
+      dividerText: {
+        paddingHorizontal: 10,
+        color: '#666',
+      },
+      googleButton: {
+        flexDirection: 'row',
+        backgroundColor: colors.secondBackground,
+        borderRadius: 15,
+        padding: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: '#ddd',
+      },
+      googleLogo: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginRight: 10,
+      },
+      googleButtonText: {
+        color: '#333',
+        fontSize: 16,
+        fontWeight: '500',
+      },
+    });
 
 export default SignInScreen;
