@@ -8,6 +8,9 @@ import SignInScreen from './src/screens/auth/singIn';
 const Stack = createNativeStackNavigator();
 import SignUpScreen from './src/screens/auth/signUp';
 import { useEffect, useState } from 'react';
+import HomeScreen from './src/screens/main/home';
+import app from './utils/firebase';
+app;
 export default function App() {
 
   const [user, setUser] = useState<User | null>(null);
@@ -22,13 +25,23 @@ export default function App() {
 
     return unsubscribe;
   }, []);
-
-  console.log(user)
+  
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="SignUp">
-      <Stack.Screen name="SignUp" component={SignUpScreen} />
-        <Stack.Screen name="SignIn" component={SignInScreen} />
+        {user?
+        (
+          <>
+        <Stack.Screen name="Home" component={HomeScreen} />
+          </>
+        ):(
+          <>
+           <Stack.Screen name="SignUp" component={SignUpScreen} />
+           <Stack.Screen name="SignIn" component={SignInScreen} />
+          </>
+        )
+      }
+     
       </Stack.Navigator>
       <StatusBar style="auto" />
     </NavigationContainer>
