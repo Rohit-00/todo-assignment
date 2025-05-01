@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -20,14 +20,9 @@ import app from '../../../utils/firebase';
 import { colors } from '../../../utils/colors';
 import Feather from '@expo/vector-icons/Feather';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import {Picker} from '@react-native-picker/picker';
+import TodoList from '../../components/todoList';
 
-interface Todo {
-  id: string;
-  text: string;
-  completed: boolean;
-  createdAt: Date;
-  time?: string; // For displaying formatted time
-}
 
 const TodoListScreen = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -36,7 +31,41 @@ const TodoListScreen = () => {
   const [loading, setLoading] = useState(true);
   const [showInput, setShowInput] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState<boolean|null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedTime, setSelectedTime] = useState(new Date());
+  const [showAddButton, setShowAddButton] = useState(true);
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('low');
+  const pickerRef:any = useRef(null);
+ console.log(todos)
+  const changeShowInputFromChild = (status:boolean) => {
+    setShowAddButton(status)
+  }
+  const openPriorityPicker = () => {
+    pickerRef.current?.focus();
+  };
 
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high':
+        return '#FF4B4B';
+      case 'medium':
+        return '#FFA246';
+      case 'low':
+        return '#4CAF50';
+      default:
+        return colors.secondText;
+    }
+  };
+
+  const resetForm = () => {
+    setNewTaskText('');
+    setDesc('');
+    setSelectedDate(new Date());
+    setSelectedTime(new Date());
+    setPriority('low');
+  }
   useEffect(() => {
     const showSubscription = Keyboard.addListener("keyboardDidShow", () => {
       setKeyboardVisible(true);
@@ -46,7 +75,11 @@ const TodoListScreen = () => {
     });
     if(showInput){
       if(!keyboardVisible){
+        if(!showTimePicker){
         setShowInput(false)
+        setShowAddButton(true);
+        resetForm()
+        }
       }
     }
     
@@ -58,6 +91,7 @@ const TodoListScreen = () => {
     
       if (keyboardVisible) {
         setShowInput(false);
+        setShowAddButton(true);
         return true;
       }
     
@@ -83,6 +117,20 @@ const TodoListScreen = () => {
     return date ? new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '2:00PM';
   };
 
+  const handleDateChange = (event: any, date?: Date) => {
+    setShowDatePicker(false);
+    if (date) {
+      setSelectedDate(date);
+    }
+  };
+  
+  const handleTimeChange = (event: any, time?: Date) => {
+    setShowTimePicker(false);
+    if (time) {
+      setSelectedTime(time);
+    }
+  };
+
   useEffect(() => {
     const userId = auth.currentUser?.uid;
     if (!userId) {
@@ -105,7 +153,11 @@ const TodoListScreen = () => {
           text: data.text,
           completed: data.completed,
           createdAt: data.createdAt?.toDate(),
-          time: data.createdAt ? formatTime(data.createdAt.toDate()) : '2:00PM'
+          time: data.createdAt ? formatTime(data.createdAt.toDate()) : '2:00PM',
+          dueTime: data.dueTime,
+          dueDate: data.dueDate?.toDate(),
+          desc: data.description,
+          priority: data.priority
         } as Todo);
       });
       setTodos(todoList);
@@ -115,24 +167,27 @@ const TodoListScreen = () => {
     return () => unsubscribe();
   }, []);
 
-  const addTodo = async () => {
-    if (newTaskText.trim().length === 0) return;
-
-    try {
-      await addDoc(collection(db, "todo"), {
-        user: user?.uid,
-        text: newTaskText,
-        completed: false,
-        createdAt: serverTimestamp(),
-      });
-      setNewTaskText('');
-      setShowInput(false);
-    } catch (e) {
-      console.error("Error adding document: ", e);
-      Alert.alert('Error', 'Failed to add todo');
-    }
-  };
-
+const addTodo = async () => {
+  if (newTaskText.trim().length === 0) return;
+  setShowInput(false);
+  setShowAddButton(true)
+  resetForm()
+  try {
+    await addDoc(collection(db, "todo"), {
+      user: user?.uid,
+      text: newTaskText,
+      completed: false,
+      description: desc,
+      createdAt: serverTimestamp(),
+      dueDate: selectedDate,
+      dueTime: selectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      priority: priority, 
+    });
+  } catch (e) {
+    console.error("Error adding document: ", e);
+    Alert.alert('Error', 'Failed to add todo');
+  }
+};
   const deleteTodo = async (todoId: string) => {
     try {
       const userId = auth.currentUser?.uid;
@@ -156,35 +211,6 @@ const TodoListScreen = () => {
     }
   };
 
-  const renderTask = ({ item }: { item: Todo }) => (
-    <TouchableOpacity 
-      style={styles.taskItem}
-      onPress={() => toggleTaskCompletion(item)}
-      activeOpacity={0.8}
-      onLongPress={() => deleteTodo(item.id)}
-    >
-      <View style={styles.taskContent}>
-        <View style={styles.checkboxContainer}>
-          {item.completed ? (
-            <View style={styles.checkboxChecked}>
-              <View style={styles.checkboxInner} />
-            </View>
-          ) : (
-            <View style={styles.checkbox} />
-          )}
-        </View>
-        <Text 
-          style={[
-            styles.taskText, 
-            item.completed && styles.taskTextCompleted
-          ]}
-        >
-          {item.text}
-        </Text>
-      </View>
-      <Text style={styles.taskTime}>{item.time}</Text>
-    </TouchableOpacity>
-  );
 
   const pendingTaskCount = todos.filter(task => !task.completed).length;
   const username = user?.displayName?.split(' ')[0] || 'User';
@@ -196,30 +222,36 @@ const TodoListScreen = () => {
       </View>
     );
   }
-
+  const handleUpdateTodo = async (todoId: string, updates: Partial<Todo>) => {
+    try {
+      const todoRef = doc(db, 'todo', todoId);
+      await updateDoc(todoRef, updates);
+    } catch (error) {
+      console.error("Error updating todo: ", error);
+      Alert.alert('Error', 'Failed to update todo');
+    }
+  };
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.container} >
       <StatusBar barStyle="dark-content" backgroundColor="#f7f9fa" />
-      
       <View style={styles.header}>
         <Text style={styles.greeting}>Hii {username}</Text>
         <Text style={styles.pendingCount}>{pendingTaskCount} tasks pending</Text>
       </View>
+      <View>
+   
+      </View>
 
-      {todos.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No tasks yet. Add your first task!</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={todos}
-          renderItem={renderTask}
-          keyExtractor={item => item.id}
-          contentContainerStyle={styles.taskList}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+
+  {todos&&<TodoList
+      todos={todos}
+      onToggleComplete={toggleTaskCompletion}
+      onDeleteTodo={deleteTodo}
+      getPriorityColor={getPriorityColor}
+      onUpdateTodo={handleUpdateTodo}
+      changeShowInputFromChild={changeShowInputFromChild}
+    />}
 
       {showInput && (
         <View style={styles.inputContainer}>
@@ -228,7 +260,7 @@ const TodoListScreen = () => {
             value={newTaskText}
             onChangeText={setNewTaskText}
             placeholder="Do some work..."
-            autoFocus
+            autoFocus={true}
             onSubmitEditing={addTodo}
           />
           <TextInput
@@ -239,20 +271,85 @@ const TodoListScreen = () => {
           
             onSubmitEditing={addTodo}
           />
-          <View style={styles.taskDetails}>
-        <TouchableOpacity style={styles.detailButton}>
-        <Feather name="flag" size={14} color={colors.secondText} />
-          <Text style={styles.detailButtonText}>Priority</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.detailButton}>
-        <Feather name="calendar" size={14} color={colors.secondText} />
-          <Text style={styles.detailButtonText}>Date</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.detailButton}>
-        <Feather name="clock" size={14} color={colors.secondText}/>
-          <Text style={styles.detailButtonText}>Time</Text>
-        </TouchableOpacity>
-          </View>
+         <View style={styles.taskDetails}>
+<TouchableOpacity 
+  style={styles.detailButton}
+  onPress={openPriorityPicker}
+>
+  <Feather 
+    name="flag" 
+    size={14} 
+    color={getPriorityColor(priority)} 
+  />
+  <Text style={[
+    styles.detailButtonText,
+    { color: getPriorityColor(priority) }
+  ]}>
+    {priority.charAt(0).toUpperCase() + priority.slice(1)}
+  </Text>
+  <Picker
+    ref={pickerRef}
+    selectedValue={priority}
+    onValueChange={(itemValue) => setPriority(itemValue)}
+    style={{ height: 0, width: 0, opacity: 0 }}
+  >
+    <Picker.Item 
+      label="Low Priority" 
+      value="low" 
+      color={getPriorityColor('low')} 
+    />
+    <Picker.Item 
+      label="Medium Priority" 
+      value="medium" 
+      color={getPriorityColor('medium')} 
+    />
+    <Picker.Item 
+      label="High Priority" 
+      value="high" 
+      color={getPriorityColor('high')} 
+    />
+  </Picker>
+</TouchableOpacity>
+  
+  <TouchableOpacity 
+    style={styles.detailButton}
+    onPress={() => setShowDatePicker(true)}
+  >
+    <Feather name="calendar" size={14} color={colors.secondText} />
+    <Text style={styles.detailButtonText}>
+      {selectedDate.toLocaleDateString()}
+    </Text>
+  </TouchableOpacity>
+  
+  <TouchableOpacity 
+    style={styles.detailButton}
+    onPress={() => setShowTimePicker(true)}
+  >
+    <Feather name="clock" size={14} color={colors.secondText}/>
+    <Text style={styles.detailButtonText}>
+      {selectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+    </Text>
+  </TouchableOpacity>
+</View>
+
+{showDatePicker && (
+  <DateTimePicker
+    value={selectedDate}
+    mode="date"
+    display="default"
+    onChange={handleDateChange}
+    minimumDate={new Date()}
+  />
+)}
+
+{showTimePicker && (
+  <DateTimePicker
+    value={selectedTime}
+    mode="time"
+    display="default"
+    onChange={handleTimeChange}
+  />
+)}
           <TouchableOpacity 
             style={styles.addTaskButton}
             onPress={addTodo}
@@ -262,9 +359,9 @@ const TodoListScreen = () => {
         </View>
       )}
 
-     {!showInput&& <TouchableOpacity 
+     {!showInput&& showAddButton &&<TouchableOpacity 
         style={styles.addButton}
-        onPress={() => setShowInput(true)}
+        onPress={() => {setShowInput(true);setShowAddButton(false)}}
         activeOpacity={0.8}
       >
         <Text style={styles.addButtonText}>+</Text>
@@ -286,6 +383,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#f7f9fa',
   },
+
   header: {
     paddingHorizontal: 20,
     paddingTop: 40,
@@ -303,66 +401,7 @@ const styles = StyleSheet.create({
   },
   taskList: {
     paddingHorizontal: 20,
-    paddingBottom: 100, // Extra space at bottom for FAB
-  },
-  taskItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  taskContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  checkboxContainer: {
-    marginRight: 12,
-  },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: '#00c853',
-  },
-  checkboxChecked: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: '#00c853',
-    backgroundColor: '#00c853',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: 'white',
-  },
-  taskText: {
-    fontSize: 16,
-    color: '#333',
-    flex: 1,
-  },
-  taskTextCompleted: {
-    textDecorationLine: 'line-through',
-    color: '#999',
-  },
-  taskTime: {
-    fontSize: 14,
-    color: '#999',
-    marginLeft: 10,
+    paddingBottom: 100,
   },
   addButton: {
     position: 'absolute',
@@ -379,6 +418,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 3,
     elevation: 5,
+    zIndex: 1, 
   },
   addButtonText: {
     fontSize: 32,
@@ -456,6 +496,21 @@ const styles = StyleSheet.create({
     color: '#999',
     textAlign: 'center',
   },
+  taskTextContainer: {
+    flex: 1,
+    flexDirection: 'column',
+  },
+  priorityIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    gap: 4,
+  },
+  priorityText: {
+    fontSize: 12,
+    textTransform: 'capitalize',
+  },
+
 });
 
 export default TodoListScreen;
