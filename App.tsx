@@ -1,7 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
-import { getAuth, createUserWithEmailAndPassword, onAuthStateChanged, User } from "firebase/auth";
-import { initializeApp } from "firebase/app";
+import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer } from '@react-navigation/native';
 import SignInScreen from './src/screens/auth/singIn';
@@ -9,8 +8,7 @@ const Stack = createNativeStackNavigator();
 import SignUpScreen from './src/screens/auth/signUp';
 import { useEffect, useState } from 'react';
 import HomeScreen from './src/screens/main/home';
-import app from './utils/firebase';
-app;
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 export default function App() {
 
   const [user, setUser] = useState<User | null>(null);
@@ -27,8 +25,9 @@ export default function App() {
   }, []);
   
   return (
+    <GestureHandlerRootView>
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="SignUp">
+      <Stack.Navigator initialRouteName="SignUp" screenOptions={{headerShown:false,animation:'fade'}}>
         {user?
         (
           <>
@@ -45,6 +44,7 @@ export default function App() {
       </Stack.Navigator>
       <StatusBar style="auto" />
     </NavigationContainer>
+    </GestureHandlerRootView>
   );
 }
 
