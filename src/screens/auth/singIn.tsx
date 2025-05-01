@@ -14,10 +14,10 @@ import app from '../../../utils/firebase';
 import { colors } from '../../../utils/colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { auth } from '../../../utils/firebase';
 const SignInScreen = ({ navigation }:any) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const auth = getAuth(app);
   const provider = new GoogleAuthProvider();
 
   const signInWithEmail = async () => {

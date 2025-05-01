@@ -14,13 +14,12 @@ import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { StatusBar } from 'expo-status-bar';
 import app from '../../../utils/firebase';
 import { colors } from '../../../utils/colors';
-
+import { auth } from '../../../utils/firebase';
 const SignUpScreen = ({ navigation }:any) => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const auth = getAuth(app);
 
   const handleSignUp = async () => {
     if (password !== confirmPassword) {
