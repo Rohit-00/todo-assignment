@@ -22,8 +22,9 @@ import Feather from '@expo/vector-icons/Feather';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {Picker} from '@react-native-picker/picker';
 import TodoList from '../../components/todoList';
+import {ExpandableCalendar, AgendaList, CalendarProvider, WeekCalendar} from 'react-native-calendars';
 
-
+const today = new Date().toISOString().split('T')[0]
 const TodoListScreen = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [newTaskText, setNewTaskText] = useState('');
@@ -37,8 +38,8 @@ const TodoListScreen = () => {
   const [selectedTime, setSelectedTime] = useState(new Date());
   const [showAddButton, setShowAddButton] = useState(true);
   const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('low');
+  const [isDaily, setIsDaily] = useState(false);
   const pickerRef:any = useRef(null);
- console.log(todos)
   const changeShowInputFromChild = (status:boolean) => {
     setShowAddButton(status)
   }
@@ -167,27 +168,28 @@ const TodoListScreen = () => {
     return () => unsubscribe();
   }, []);
 
-const addTodo = async () => {
-  if (newTaskText.trim().length === 0) return;
-  setShowInput(false);
-  setShowAddButton(true)
-  resetForm()
-  try {
-    await addDoc(collection(db, "todo"), {
-      user: user?.uid,
-      text: newTaskText,
-      completed: false,
-      description: desc,
-      createdAt: serverTimestamp(),
-      dueDate: selectedDate,
-      dueTime: selectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      priority: priority, 
-    });
-  } catch (e) {
-    console.error("Error adding document: ", e);
-    Alert.alert('Error', 'Failed to add todo');
-  }
-};
+  const addTodo = async () => {
+    if (newTaskText.trim().length === 0) return;
+    setShowInput(false);
+    setShowAddButton(true)
+    resetForm()
+    try {
+      await addDoc(collection(db, "todo"), {
+        user: user?.uid,
+        text: newTaskText,
+        completed: false,
+        description: desc,
+        createdAt: serverTimestamp(),
+        dueDate: selectedDate,
+        dueTime: selectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        priority: priority,
+        isDaily: isDaily, // Add this line
+      });
+    } catch (e) {
+      console.error("Error adding document: ", e);
+      Alert.alert('Error', 'Failed to add todo');
+    }
+  };
   const deleteTodo = async (todoId: string) => {
     try {
       const userId = auth.currentUser?.uid;
@@ -233,17 +235,49 @@ const addTodo = async () => {
   };
   return (
     <SafeAreaView style={styles.container}>
+
       <View style={styles.container} >
+
       <StatusBar barStyle="dark-content" backgroundColor="#f7f9fa" />
-      <View style={styles.header}>
+      <TouchableOpacity style={styles.header} onPress={async() => {auth.signOut();}}>
         <Text style={styles.greeting}>Hii {username}</Text>
         <Text style={styles.pendingCount}>{pendingTaskCount} tasks pending</Text>
-      </View>
+        
+      </TouchableOpacity>
+    
       <View>
    
       </View>
-
-
+      <CalendarProvider date={today} style={{marginBottom:-100}}>
+      <WeekCalendar
+       theme={{
+        backgroundColor: 'black',
+        calendarBackground: colors.background,
+        textSectionTitleColor: '#333333',
+        selectedDayBackgroundColor: '#00adf5',
+        selectedDayTextColor: '#ffffff',
+        todayTextColor: '#00adf5',
+        dayTextColor: '#2d4150',
+        textDisabledColor: '#d9e1e8',
+        dotColor: '#00adf5',
+        selectedDotColor: '#ffffff',
+        arrowColor: 'orange',
+        monthTextColor: 'blue',
+        textDayFontFamily: 'Arial',
+        textDayFontWeight: '500',
+        textDayFontSize: 16,
+        
+      }}
+      style={{elevation:0}}
+      current={today}
+        firstDay={1}
+        onDayPress={(day) => {
+          console.log('Selected day', day);
+        }}
+      
+    
+      />
+</CalendarProvider>
   {todos&&<TodoList
       todos={todos}
       onToggleComplete={toggleTaskCompletion}
@@ -330,6 +364,13 @@ const addTodo = async () => {
       {selectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
     </Text>
   </TouchableOpacity>
+  <TouchableOpacity 
+    style={isDaily?styles.detailButton:styles.dailyButton}
+    onPress={() => setIsDaily(!isDaily)}
+  >
+      <Text style={isDaily?styles.checkboxLabel:styles.dailyButtonText}>Daily</Text>
+
+  </TouchableOpacity>
 </View>
 
 {showDatePicker && (
@@ -374,8 +415,8 @@ const addTodo = async () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent:'flex-start',
     backgroundColor: '#f7f9fa',
-    position: 'relative',
   },
   loadingContainer: {
     flex: 1,
@@ -466,6 +507,18 @@ const styles = StyleSheet.create({
     paddingVertical:5,
     borderRadius:5
   },
+  dailyButton:{
+    flexDirection:'row',
+    alignItems:'baseline',
+    gap:2,
+    backgroundColor:colors.primary,
+    paddingHorizontal:10,
+    paddingVertical:5,
+    borderRadius:5
+  },
+  dailyButtonText:{
+    color:'white'
+  },
   detailButtonText:{
     color:colors.secondText
   },
@@ -509,6 +562,26 @@ const styles = StyleSheet.create({
   priorityText: {
     fontSize: 12,
     textTransform: 'capitalize',
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    marginBottom: 10,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    borderRadius: 6,
+    marginRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    color: '#333',
   },
 
 });
