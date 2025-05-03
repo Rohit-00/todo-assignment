@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "MyApp",
+    "name": "Todo App",
     "slug": "MyApp",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -13,24 +13,24 @@
       ]
     ],
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#00C896"
     },
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#00C896 "
       },
       "useNextNotificationsApi": true,
       "permissions": ["NOTIFICATIONS", "RECEIVE_BOOT_COMPLETED", "SCHEDULE_EXACT_ALARM"],
       "package": "com.rohit965.MyApp"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/icon.png"
     },
     "extra": {
       "eas": {
