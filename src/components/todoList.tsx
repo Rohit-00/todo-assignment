@@ -20,24 +20,15 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 type SortOption = 'default' | 'dueTime' | 'priority';
-interface Todo {
-  id: string;
-  text: string;
-  desc?: string;
-  completed: boolean;
-  createdAt: Date;
-  dueDate?: Date;
-  dueTime?: string;
-  priority?: 'low' | 'medium' | 'high';
-}
 
 interface TodoListProps {
   todos: Todo[];
   onToggleComplete: (todo: Todo) => void;
-  onDeleteTodo: (id: string) => void;
+  onDeleteTodo: (todo:Todo) => void;
   getPriorityColor: (priority: string) => string;
   onUpdateTodo: (todoId: string, todo: Partial<Todo>) => void;
   changeShowInputFromChild: (show: boolean) => void;
+  todoStatus: TodoStatus[];
 }
 
 const TodoList: React.FC<TodoListProps> = ({
@@ -47,6 +38,7 @@ const TodoList: React.FC<TodoListProps> = ({
   getPriorityColor,
   onUpdateTodo,
   changeShowInputFromChild,
+  todoStatus,
 }) => {
   const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null);
   const [editForm, setEditForm] = useState({
@@ -55,6 +47,7 @@ const TodoList: React.FC<TodoListProps> = ({
     priority: 'low' as 'low' | 'medium' | 'high',
     dueDate: new Date(),
     dueTime: new Date(),
+    daily:false,
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -146,11 +139,10 @@ const TodoList: React.FC<TodoListProps> = ({
       dueTime: todo.dueTime
         ? new Date(`2000-01-01T${todo.dueTime}`)
         : new Date(),
+        daily:todo.isDaily || false,
     });
     bottomSheetModalRef.current?.present();
   }, [changeShowInputFromChild]); 
-
-
   const handleUpdateTodo = async () => {
     if (!selectedTodo) return;
 
@@ -174,20 +166,17 @@ const TodoList: React.FC<TodoListProps> = ({
       Alert.alert('Error', 'Failed to update todo');
     }
   };
-
-
- const renderTask = ({ item }: { item: Todo }) => (
+ const renderTask = ({ item }: { item: Todo }) => {
+  return(
     <TouchableOpacity
       style={styles.taskItem}
       onPress={()=>handlePresentModalPress(item)}
       activeOpacity={0.8}
     >
       <View style={styles.taskContent}>
-         {/* Checkbox - Consider making this functional */}
          <TouchableOpacity onPress={() => onToggleComplete(item)} style={styles.checkboxContainer}>
-          {item.completed ? (
+          {todoStatus.some(todo => todo.todoId === item.id) ? (
             <View style={styles.checkboxChecked}>
-              {/* Optional: Add a checkmark icon here */}
                <Feather name="check" size={14} color="white" />
             </View>
           ) : (
@@ -198,7 +187,7 @@ const TodoList: React.FC<TodoListProps> = ({
           <Text
             style={[
               styles.taskText,
-              item.completed && styles.taskTextCompleted
+              todoStatus.some(todo => todo.todoId === item.id) && styles.taskTextCompleted
             ]}
           >
             {item.text}
@@ -219,7 +208,7 @@ const TodoList: React.FC<TodoListProps> = ({
       </View>
        {item.dueTime && <Text style={styles.taskTime}>{item.dueTime}</Text>}
     </TouchableOpacity>
-  );
+  );}
 
 
   return (
@@ -227,7 +216,7 @@ const TodoList: React.FC<TodoListProps> = ({
     <BottomSheetModalProvider>
         <SortingHeader />
         <FlatList
-  data={getSortedTodos(todos)} // Change this line
+  data={getSortedTodos(todos)} 
   renderItem={renderTask}
   keyExtractor={item => item.id}
   contentContainerStyle={todos.length === 0 ? styles.emptyListContainer : styles.taskList}
@@ -262,7 +251,7 @@ const TodoList: React.FC<TodoListProps> = ({
           <TextInput
             style={styles.desc}
             value={editForm.desc}
-            onChangeText={(text) => setEditForm(prev => ({ ...prev, description: text }))}
+            onChangeText={(text) => setEditForm(prev => ({ ...prev, desc: text }))} // Correct key 'desc'
             placeholder="Description"
             placeholderTextColor={colors.secondText}
             multiline
@@ -321,7 +310,16 @@ const TodoList: React.FC<TodoListProps> = ({
               <Text style={styles.detailButtonText}>
                 {editForm.dueTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </Text>
+              
             </TouchableOpacity>
+            {editForm.daily && <TouchableOpacity
+              style={styles.detailButton}
+            >
+              <Text style={styles.detailButtonText}>
+               Daily
+              </Text>
+            </TouchableOpacity>}
+            
           </View>
 
           <View style={styles.bottomSheetActions}>
@@ -337,7 +335,7 @@ const TodoList: React.FC<TodoListProps> = ({
                       text: 'Delete',
                       onPress: () => {
                         if (selectedTodo) {
-                          onDeleteTodo(selectedTodo.id);
+                          onDeleteTodo(selectedTodo);
                           bottomSheetModalRef.current?.dismiss();
                         }
                       },
@@ -446,9 +444,7 @@ const styles = StyleSheet.create({
     paddingBottom: 100, 
   },
   emptyListContainer: {
-      flexGrow: 1, 
-      justifyContent: 'center',
-      alignItems: 'center',
+    
   },
   taskItem: {
     flexDirection: 'row',
@@ -536,7 +532,7 @@ const styles = StyleSheet.create({
   },
   bottomSheetBackground: {
     backgroundColor: 'white',
-    borderTopLeftRadius: 20, // Smoother radius
+    borderTopLeftRadius: 20, 
     borderTopRightRadius: 20,
 
   },
@@ -547,11 +543,11 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   bottomSheetContent: {
-    flex: 1, // Allow content to fill the sheet view
+    flex: 1, 
     paddingHorizontal: 20,
     paddingTop: 10,
-    paddingBottom: 30, // Add padding at the bottom
-    backgroundColor: 'white', // Match background
+    paddingBottom: 30, 
+    backgroundColor: 'white',
   },
   input: {
     fontSize: 20,
@@ -564,26 +560,25 @@ const styles = StyleSheet.create({
   desc:{
     fontSize: 14,
     paddingVertical: 10,
-    minHeight: 60, // Give description more space
-    textAlignVertical: 'top', // Align placeholder text top
+    minHeight: 60,
+    textAlignVertical: 'top', 
     marginBottom: 15,
   },
   taskDetails:{
     flexDirection:'row',
-    flexWrap: 'wrap', // Allow wrapping on smaller screens
-    // justifyContent: 'space-between', // Space out items
+    flexWrap: 'wrap', 
     alignItems: 'center',
-    marginVertical: 10, // Add vertical margin
-    gap: 10, // Use gap for spacing
+    marginVertical: 10, 
+    gap: 10, 
   },
   detailButton:{
     flexDirection:'row',
-    alignItems:'center', // Center icon and text vertically
-    gap: 5, // Space between icon and text
+    alignItems:'center', 
+    gap: 5, 
     backgroundColor: colors.buttonBackground,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 5, // Pill shape
+    borderRadius: 5, 
   },
   detailButtonText:{
     color: colors.secondText,
@@ -592,7 +587,7 @@ const styles = StyleSheet.create({
   bottomSheetActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 25, // More space before actions
+    marginTop: 25, 
     gap: 15,
   },
   actionButton: {
@@ -601,7 +596,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
-    borderRadius: 10, // Consistent radius
+    borderRadius: 10, 
     gap: 8,
   },
   deleteButton: {
@@ -618,9 +613,8 @@ const styles = StyleSheet.create({
   sortingHeader: {
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    backgroundColor: colors.background,
+
   },
   sortButton: {
     flexDirection: 'row',
@@ -628,7 +622,7 @@ const styles = StyleSheet.create({
     gap: 8,
     padding: 8,
     borderRadius: 8,
-    backgroundColor: colors.buttonBackground,
+    backgroundColor: colors.background,
   },
   sortButtonText: {
     color: colors.primary,
