@@ -15,6 +15,7 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { getAuth, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithCredential, updateProfile  } from 'firebase/auth';
 import { StatusBar } from 'expo-status-bar';
@@ -26,8 +27,9 @@ const SignUpScreen = ({ navigation }:any) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  
+  const [loading, setLoading] = useState(false);
   const handleSignUp = async () => {
+    setLoading(true);
     if (!username.trim()) {
       Alert.alert('Error', 'Username is required');
       return;
@@ -53,6 +55,7 @@ const SignUpScreen = ({ navigation }:any) => {
       await updateProfile(userCredential.user, {
         displayName: username
       });
+      setLoading(false);
   
     } catch (error: any) {
       Alert.alert('Error', error.message);
@@ -106,7 +109,7 @@ const SignUpScreen = ({ navigation }:any) => {
           onPress={handleSignUp}
           activeOpacity={0.8}
         >
-          <Text style={styles.signUpButtonText}>Sign Up</Text>
+          <Text style={styles.signUpButtonText}>{loading?<ActivityIndicator size={"small"} color={"white"}/>:"SignUp"}</Text>
         </TouchableOpacity>
         
         <View style={styles.signInContainer}>

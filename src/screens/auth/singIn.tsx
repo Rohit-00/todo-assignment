@@ -15,15 +15,18 @@ import { colors } from '../../../utils/colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { auth } from '../../../utils/firebase';
+import { ActivityIndicator } from 'react-native';
 const SignInScreen = ({ navigation }:any) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const provider = new GoogleAuthProvider();
 
   const signInWithEmail = async () => {
+    setLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log('User signed in:', userCredential.user.uid);
+      setLoading(false);
     } catch (error:any) {
       Alert.alert('Error', error.message);
     }
@@ -73,7 +76,7 @@ const SignInScreen = ({ navigation }:any) => {
           onPress={signInWithEmail}
           activeOpacity={0.8}
         >
-          <Text style={styles.signUpButtonText}>Sign In</Text>
+          <Text style={styles.signUpButtonText}>{loading?<ActivityIndicator size={"small"} color={"white"}/>:"SignIn"}</Text>
         </TouchableOpacity>
         
         <View style={styles.signInContainer}>
