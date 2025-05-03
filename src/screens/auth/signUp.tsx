@@ -59,6 +59,7 @@ const SignUpScreen = ({ navigation }:any) => {
   
     } catch (error: any) {
       Alert.alert('Error', error.message);
+      setLoading(false);
     }
   };
 

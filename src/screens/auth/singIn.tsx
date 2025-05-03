@@ -29,6 +29,7 @@ const SignInScreen = ({ navigation }:any) => {
       setLoading(false);
     } catch (error:any) {
       Alert.alert('Error', error.message);
+      setLoading(false);
     }
   };
 
