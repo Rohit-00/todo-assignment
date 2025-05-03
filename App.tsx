@@ -23,11 +23,14 @@ export default function App() {
 
     return unsubscribe;
   }, []);
-  
+ if(loading){
+  return(<Text>Loading...</Text>)
+ }
   return (
     <GestureHandlerRootView>
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="SignUp" screenOptions={{headerShown:false,animation:'fade'}}>
+
+      <Stack.Navigator initialRouteName={user?'Home':'SignUp'} screenOptions={{headerShown:false,animation:'fade'}}>
         {user?
         (
           <>
