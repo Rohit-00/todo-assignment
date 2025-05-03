@@ -1,4 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+
+import {
+  GoogleSignin,
+  statusCodes,
+} from '@react-native-google-signin/google-signin'
+
 import {
   View,
   Text,
@@ -10,38 +16,45 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithCredential, updateProfile  } from 'firebase/auth';
 import { StatusBar } from 'expo-status-bar';
-import app from '../../../utils/firebase';
 import { colors } from '../../../utils/colors';
 import { auth } from '../../../utils/firebase';
+import * as Google from 'expo-auth-session/providers/google';
 const SignUpScreen = ({ navigation }:any) => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-
+  
   const handleSignUp = async () => {
+    if (!username.trim()) {
+      Alert.alert('Error', 'Username is required');
+      return;
+    }
+  
     if (password !== confirmPassword) {
       Alert.alert('Error', 'Passwords do not match');
       return;
     }
-
+  
     if (password.length < 6) {
       Alert.alert('Error', 'Password should be at least 6 characters');
       return;
     }
-
+  
     try {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
         password
       );
-      console.log('User created:', userCredential.user.uid);
-      Alert.alert('Success', 'Account created successfully!');
-      navigation.navigate('SignIn');
-    } catch (error:any) {
+      
+      await updateProfile(userCredential.user, {
+        displayName: username
+      });
+  
+    } catch (error: any) {
       Alert.alert('Error', error.message);
     }
   };
@@ -111,7 +124,6 @@ const SignUpScreen = ({ navigation }:any) => {
         
         <TouchableOpacity 
           style={styles.googleButton} 
-          onPress={()=>console.log("google signed in")}
           activeOpacity={0.8}
         >
           <Text style={styles.googleLogo}>G</Text>
