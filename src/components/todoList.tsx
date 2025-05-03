@@ -238,6 +238,7 @@ const TodoList: React.FC<TodoListProps> = ({
       >
         <BottomSheetView style={styles.bottomSheetContent}>
           <TextInput
+          readOnly
             style={styles.input}
             value={editForm.text}
             onChangeText={(text) => setEditForm(prev => ({ ...prev, text }))}
@@ -246,6 +247,7 @@ const TodoList: React.FC<TodoListProps> = ({
           />
 
           <TextInput
+          readOnly
             style={styles.desc}
             value={editForm.desc}
             onChangeText={(text) => setEditForm(prev => ({ ...prev, desc: text }))}
@@ -257,14 +259,7 @@ const TodoList: React.FC<TodoListProps> = ({
           <View style={styles.taskDetails}>
              <TouchableOpacity
                 style={styles.detailButton}
-                onPress={() => {
-                    Alert.alert('Select Priority', '', [
-                        { text: 'Low', onPress: () => setEditForm(prev => ({ ...prev, priority: 'low' })) },
-                        { text: 'Medium', onPress: () => setEditForm(prev => ({ ...prev, priority: 'medium' })) },
-                        { text: 'High', onPress: () => setEditForm(prev => ({ ...prev, priority: 'high' })) },
-                        { text: 'Cancel', style: 'cancel' },
-                    ]);
-                }}
+               
             >
                 <Feather
                     name="flag"
@@ -291,7 +286,7 @@ const TodoList: React.FC<TodoListProps> = ({
 
             <TouchableOpacity
               style={styles.detailButton}
-              onPress={() => setShowDatePicker(true)}
+          
             >
               <Feather name="calendar" size={14} color={colors.secondText} />
               <Text style={styles.detailButtonText}>
@@ -301,7 +296,6 @@ const TodoList: React.FC<TodoListProps> = ({
 
             <TouchableOpacity
               style={styles.detailButton}
-              onPress={() => setShowTimePicker(true)}
             >
               <Feather name="clock" size={14} color={colors.secondText}/>
               <Text style={styles.detailButtonText}>
@@ -346,13 +340,7 @@ const TodoList: React.FC<TodoListProps> = ({
               <Text style={styles.actionButtonText}>Delete</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.actionButton, styles.saveButton]}
-              onPress={handleUpdateTodo}
-            >
-              <Feather name="check" size={20} color="white" />
-              <Text style={styles.actionButtonText}>Save</Text>
-            </TouchableOpacity>
+       
           </View>
         </BottomSheetView>
       </BottomSheetModal>
