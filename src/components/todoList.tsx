@@ -157,7 +157,7 @@ const TodoList: React.FC<TodoListProps> = ({
         text: editForm.text,
         desc: editForm.desc,
         priority: editForm.priority,
-        dueDate: editForm.dueDate,
+        dueDate: editForm.dueDate.toISOString().split('T')[0],
         dueTime: formattedTime, 
       });
       bottomSheetModalRef.current?.dismiss();
