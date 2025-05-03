@@ -4,7 +4,7 @@ type Todo = {
     desc:string;
     completed: boolean;
     createdAt: Date;  
-    dueDate?: Date; 
+    dueDate?: string; 
     dueTime?: string; 
     priority?: 'low' | 'medium' | 'high';
     isDaily?: boolean;
