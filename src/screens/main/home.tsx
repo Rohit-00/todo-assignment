@@ -13,7 +13,7 @@ import {
   BackHandler,
   Keyboard,
 } from 'react-native';
-import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, where, updateDoc } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, where, updateDoc, or, and, getDoc, getDocs } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { serverTimestamp } from 'firebase/firestore';
 import app from '../../../utils/firebase';
@@ -23,7 +23,54 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import {Picker} from '@react-native-picker/picker';
 import TodoList from '../../components/todoList';
 import {ExpandableCalendar, AgendaList, CalendarProvider, WeekCalendar} from 'react-native-calendars';
+import * as Notifications from 'expo-notifications';
+import Entypo from '@expo/vector-icons/Entypo';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
+const scheduleTaskNotificationDaily = async (title:string,desc:string,time:Date) => {
+  try {
+      const hour = time.getHours();
+      const minute = time.getMinutes();
+      const notificationId = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: title,
+        body: desc,
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: hour,
+        minute: minute,
+      },
+    });
+    return notificationId
+  } catch (error) {
+    console.error('Error scheduling notification:', error);
+  }
+};
+const scheduleTaskNotificationOnce = async (title:string,desc:string,time:Date) => {
+  try {
+      const notificationId = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: title,
+        body: desc,
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date:time
+      },
+    });
+    return notificationId
+  } catch (error) {
+    console.error('Error scheduling notification:', error);
+  }
+};
 const today = new Date().toISOString().split('T')[0]
 const TodoListScreen = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -39,6 +86,8 @@ const TodoListScreen = () => {
   const [showAddButton, setShowAddButton] = useState(true);
   const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('low');
   const [isDaily, setIsDaily] = useState(false);
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [todoStatus , setTodoStatus] = useState<TodoStatus[]>([])
   const pickerRef:any = useRef(null);
   const changeShowInputFromChild = (status:boolean) => {
     setShowAddButton(status)
@@ -59,13 +108,24 @@ const TodoListScreen = () => {
         return colors.secondText;
     }
   };
+  useEffect(() => {
+    const requestPermissions = async () => {
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission required', 'Push notifications are required for task reminders');
+      }
+    };
 
+    requestPermissions();
+  }, []);
+  
   const resetForm = () => {
     setNewTaskText('');
     setDesc('');
     setSelectedDate(new Date());
     setSelectedTime(new Date());
     setPriority('low');
+    setIsDaily(false);
   }
   useEffect(() => {
     const showSubscription = Keyboard.addListener("keyboardDidShow", () => {
@@ -141,10 +201,15 @@ const TodoListScreen = () => {
   
     const q = query(
       collection(db, 'todo'), 
-      where('user', '==', userId), 
+      and(where('user', '==',userId),
+      or(where('dueDate', '==', date),
+      where('isDaily', '==', true)), ),
       orderBy('createdAt', 'desc')
     );
-  
+    const q2 = query(
+      collection(db, 'todo_status'), 
+      where('date', '==', date)
+    );
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const todoList: Todo[] = [];
       querySnapshot.forEach((doc) => {
@@ -156,23 +221,47 @@ const TodoListScreen = () => {
           createdAt: data.createdAt?.toDate(),
           time: data.createdAt ? formatTime(data.createdAt.toDate()) : '2:00PM',
           dueTime: data.dueTime,
-          dueDate: data.dueDate?.toDate(),
+          dueDate: data.dueDate,
           desc: data.description,
-          priority: data.priority
+          priority: data.priority,
+          isDaily: data.isDaily,
+          notificationId: data.notificationId,
         } as Todo);
       });
       setTodos(todoList);
       setLoading(false);
     });
+    const unsubscribeTodoStatus = onSnapshot(q2, (querySnapshot) => {
+      const todoList: TodoStatus[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        todoList.push({
+          id: doc.id,
+          todoId: data.todoId,
+    
+          date: data.date,
+
+        } as TodoStatus);
+      });
+      setTodoStatus(todoList);
+      setLoading(false);
+    });
   
-    return () => unsubscribe();
-  }, []);
+    return () => {unsubscribe();unsubscribeTodoStatus();};
+  }, [date]);
 
   const addTodo = async () => {
     if (newTaskText.trim().length === 0) return;
     setShowInput(false);
     setShowAddButton(true)
     resetForm()
+    let notificationId = null;
+    if(isDaily){
+      notificationId = await scheduleTaskNotificationDaily(newTaskText,desc,selectedTime)
+    } else {
+      notificationId = await scheduleTaskNotificationOnce(newTaskText,desc,selectedTime)
+    }
+    
     try {
       await addDoc(collection(db, "todo"), {
         user: user?.uid,
@@ -180,41 +269,69 @@ const TodoListScreen = () => {
         completed: false,
         description: desc,
         createdAt: serverTimestamp(),
-        dueDate: selectedDate,
+        dueDate: selectedDate.toISOString().split('T')[0], 
         dueTime: selectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         priority: priority,
-        isDaily: isDaily, // Add this line
+        isDaily: isDaily, 
+        notificationId: notificationId,
       });
+      // await addDoc(collection(db, "todo_status"), {
+      //   user: user?.uid,
+      //   todoId: data.id,
+      //   completed: false,
+      //   date: selectedDate.toISOString().split('T')[0], 
+      //   createdAt: serverTimestamp(),
+      //   isDaily: isDaily, 
+      // }).then((docRef) => {
+      //   const todoRef = doc(db, 'todo', docRef.id);
+      //   updateDoc(todoRef, { todoId: docRef.id });
+      // });
     } catch (e) {
       console.error("Error adding document: ", e);
       Alert.alert('Error', 'Failed to add todo');
     }
   };
-  const deleteTodo = async (todoId: string) => {
+  const deleteTodo = async (todoId: Todo) => {
     try {
       const userId = auth.currentUser?.uid;
       if (!userId) throw new Error('User not authenticated');
-
-      await deleteDoc(doc(db, 'todo', todoId));
+      await Notifications.cancelScheduledNotificationAsync(todoId.notificationId!);
+      await deleteDoc(doc(db, 'todo', todoId.id));
+      const q = query(collection(db, 'todo_status'), where('todoId', '==', todoId.id));
+      const querySnapshot = await getDocs(q);
+      await deleteDoc(doc(db, 'todo_status', querySnapshot.docs[0].id));
     } catch (error) {
       Alert.alert('Error', 'Failed to delete todo');
     }
   };
-
   const toggleTaskCompletion = async (todo: Todo) => {
     try {
-      const todoRef = doc(db, 'todo', todo.id);
-      await updateDoc(todoRef, {
-        completed: !todo.completed
-      });
+      const todoRef = collection(db, 'todo_status');
+
+      const q = query(
+        todoRef,
+        and(where('todoId','==',todo.id),
+        where('date','==',date)),
+      );
+      const snapshot = await getDocs(q);
+      if(!snapshot.empty){
+        deleteDoc(doc(db, 'todo_status', snapshot.docs[0].id))
+      }else{
+        await addDoc(todoRef, {
+          todoId: todo.id,
+          date:date,
+         
+        })
+      }
+
+
     } catch (error) {
       console.error("Error updating task: ", error);
       Alert.alert('Error', 'Failed to update todo status');
     }
   };
-
-
-  const pendingTaskCount = todos.filter(task => !task.completed).length;
+  const totalTask = todos.length;
+  const pendingTaskCount = totalTask-todoStatus.filter(task => task).length;
   const username = user?.displayName?.split(' ')[0] || 'User';
 
   if (loading) {
@@ -239,22 +356,29 @@ const TodoListScreen = () => {
       <View style={styles.container} >
 
       <StatusBar barStyle="dark-content" backgroundColor="#f7f9fa" />
-      <TouchableOpacity style={styles.header} onPress={async() => {auth.signOut();}}>
+      <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center'}}>
+      <TouchableOpacity style={styles.header}>
         <Text style={styles.greeting}>Hii {username}</Text>
         <Text style={styles.pendingCount}>{pendingTaskCount} tasks pending</Text>
         
       </TouchableOpacity>
-    
-      <View>
-   
+      <TouchableOpacity style={{padding:10}} onPress={async()=>await auth.signOut()}>
+      <MaterialIcons name="logout" size={24} color="black" />
+            </TouchableOpacity>
+      
       </View>
-      <CalendarProvider date={today} style={{marginBottom:-100}}>
-      <WeekCalendar
-       theme={{
+ 
+      <View style={styles.calendarContainer}> 
+  <CalendarProvider 
+    date={today}
+    style={styles.calendarProvider}
+  >
+    <WeekCalendar
+      theme={{
         backgroundColor: 'black',
         calendarBackground: colors.background,
         textSectionTitleColor: '#333333',
-        selectedDayBackgroundColor: '#00adf5',
+        selectedDayBackgroundColor: colors.primary,
         selectedDayTextColor: '#ffffff',
         todayTextColor: '#00adf5',
         dayTextColor: '#2d4150',
@@ -268,18 +392,20 @@ const TodoListScreen = () => {
         textDayFontSize: 16,
         
       }}
-      style={{elevation:0}}
+      allowShadow={false}
       current={today}
         firstDay={1}
         onDayPress={(day) => {
-          console.log('Selected day', day);
+          setDate(day.dateString)
         }}
-      
+      style={styles.weekCalendar}
+    />
+  </CalendarProvider>
+</View>
     
-      />
-</CalendarProvider>
   {todos&&<TodoList
       todos={todos}
+      todoStatus={todoStatus}
       onToggleComplete={toggleTaskCompletion}
       onDeleteTodo={deleteTodo}
       getPriorityColor={getPriorityColor}
@@ -365,10 +491,10 @@ const TodoListScreen = () => {
     </Text>
   </TouchableOpacity>
   <TouchableOpacity 
-    style={isDaily?styles.detailButton:styles.dailyButton}
+    style={isDaily?styles.dailyButton:styles.detailButton}
     onPress={() => setIsDaily(!isDaily)}
   >
-      <Text style={isDaily?styles.checkboxLabel:styles.dailyButtonText}>Daily</Text>
+      <Text style={isDaily?styles.dailyButtonText:styles.checkboxLabel}>Daily</Text>
 
   </TouchableOpacity>
 </View>
@@ -451,7 +577,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#00c853',
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -582,6 +708,15 @@ const styles = StyleSheet.create({
   checkboxLabel: {
     fontSize: 14,
     color: '#333',
+  },
+  calendarContainer: {
+    height: '10%', 
+  },
+  calendarProvider: {
+    height: '100%',
+  },
+  weekCalendar: {
+    height: 70, 
   },
 
 });
