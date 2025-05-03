@@ -7,6 +7,16 @@ type Todo = {
     dueDate?: Date; 
     dueTime?: string; 
     priority?: 'low' | 'medium' | 'high';
+    isDaily?: boolean;
+    notificationId?: string;
   }
+type TodoStatus = {
+  id:string;
+  todoId: string;
+  completed: boolean;
+  date:Date;
+  isDaily:boolean;
+  createdAt:Date;
+}
 
-  type SortOption = 'dueTime' | 'priority' | 'default';
+type SortOption = 'dueTime' | 'priority' | 'default';
