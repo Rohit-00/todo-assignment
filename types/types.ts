@@ -15,6 +15,7 @@ type TodoStatus = {
   todoId: string;
   completed: boolean;
   date:Date;
+  userId:string;
   isDaily:boolean;
   createdAt:Date;
 }

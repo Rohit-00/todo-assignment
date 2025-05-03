@@ -24,7 +24,7 @@ import {Picker} from '@react-native-picker/picker';
 import TodoList from '../../components/todoList';
 import {ExpandableCalendar, AgendaList, CalendarProvider, WeekCalendar} from 'react-native-calendars';
 import * as Notifications from 'expo-notifications';
-import Entypo from '@expo/vector-icons/Entypo';
+import * as Network from 'expo-network';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -71,6 +71,15 @@ const scheduleTaskNotificationOnce = async (title:string,desc:string,time:Date) 
     console.error('Error scheduling notification:', error);
   }
 };
+const OfflineMessage = () => (
+  <View style={styles.offlineContainer}>
+    <Feather name="wifi-off" size={50} color={colors.negative} />
+    <Text style={styles.offlineTitle}>No Internet Connection</Text>
+    <Text style={styles.offlineText}>
+      Please check your internet connection and try again
+    </Text>
+  </View>
+);
 const today = new Date().toISOString().split('T')[0]
 const TodoListScreen = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -88,6 +97,20 @@ const TodoListScreen = () => {
   const [isDaily, setIsDaily] = useState(false);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [todoStatus , setTodoStatus] = useState<TodoStatus[]>([])
+  const [isConnected, setIsConnected] = useState<boolean>(true);
+
+  useEffect(() => {
+    const checkConnection = async () => {
+      const networkState = await Network.getNetworkStateAsync();
+      setIsConnected(networkState.isConnected!);
+    };
+  
+    const intervalId = setInterval(checkConnection, 5000); // Check every 5 seconds
+    checkConnection(); // Initial check
+  
+    return () => clearInterval(intervalId);
+  }, []);
+  
   const pickerRef:any = useRef(null);
   const changeShowInputFromChild = (status:boolean) => {
     setShowAddButton(status)
@@ -208,7 +231,8 @@ const TodoListScreen = () => {
     );
     const q2 = query(
       collection(db, 'todo_status'), 
-      where('date', '==', date)
+      where('date', '==', date),
+      where('userId', '==', userId),
     );
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const todoList: Todo[] = [];
@@ -238,7 +262,7 @@ const TodoListScreen = () => {
         todoList.push({
           id: doc.id,
           todoId: data.todoId,
-    
+          userId:data.userId,
           date: data.date,
 
         } as TodoStatus);
@@ -320,6 +344,7 @@ const TodoListScreen = () => {
         await addDoc(todoRef, {
           todoId: todo.id,
           date:date,
+          userId:user?.uid,
          
         })
       }
@@ -331,6 +356,7 @@ const TodoListScreen = () => {
     }
   };
   const totalTask = todos.length;
+  console.log(totalTask,todoStatus)
   const pendingTaskCount = totalTask-todoStatus.filter(task => task).length;
   const username = user?.displayName?.split(' ')[0] || 'User';
 
@@ -375,7 +401,7 @@ const TodoListScreen = () => {
   >
     <WeekCalendar
       theme={{
-        backgroundColor: 'black',
+        backgroundColor: colors.background,
         calendarBackground: colors.background,
         textSectionTitleColor: '#333333',
         selectedDayBackgroundColor: colors.primary,
@@ -402,8 +428,9 @@ const TodoListScreen = () => {
     />
   </CalendarProvider>
 </View>
-    
-  {todos&&<TodoList
+{isConnected ? (
+  todos && (
+    <TodoList
       todos={todos}
       todoStatus={todoStatus}
       onToggleComplete={toggleTaskCompletion}
@@ -411,7 +438,11 @@ const TodoListScreen = () => {
       getPriorityColor={getPriorityColor}
       onUpdateTodo={handleUpdateTodo}
       changeShowInputFromChild={changeShowInputFromChild}
-    />}
+    />
+  )
+) : (
+  <OfflineMessage />
+)}
 
       {showInput && (
         <View style={styles.inputContainer}>
@@ -717,6 +748,26 @@ const styles = StyleSheet.create({
   },
   weekCalendar: {
     height: 70, 
+  },
+  offlineContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    paddingHorizontal: 20,
+  },
+  offlineTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.negative,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  offlineText: {
+    fontSize: 16,
+    color: colors.secondText,
+    textAlign: 'center',
+    lineHeight: 24,
   },
 
 });

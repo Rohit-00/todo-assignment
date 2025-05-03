@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer } from '@react-navigation/native';
@@ -24,7 +24,12 @@ export default function App() {
     return unsubscribe;
   }, []);
  if(loading){
-  return(<Text>Loading...</Text>)
+  return( 
+  <View style={{flex:1,justifyContent:'center',alignItems:'center'}}>
+  <ActivityIndicator size="large" color="#00c853" />
+  </View>
+
+)
  }
   return (
     <GestureHandlerRootView>

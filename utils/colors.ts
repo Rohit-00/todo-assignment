@@ -31,4 +31,4 @@ const theme = {
   };
 
 const isDarkMode = Appearance.getColorScheme() === 'dark';
-export const colors = theme[isDarkMode ? 'dark' : 'light'];
+export const colors = theme['light'];
