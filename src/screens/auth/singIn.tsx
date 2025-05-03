@@ -83,20 +83,6 @@ const SignInScreen = ({ navigation }:any) => {
           </TouchableOpacity>
         </View>
         
-        <View style={styles.dividerContainer}>
-          <View style={styles.divider} />
-          <Text style={styles.dividerText}>Or</Text>
-          <View style={styles.divider} />
-        </View>
-        
-        <TouchableOpacity 
-          style={styles.googleButton} 
-          onPress={()=>console.log("google signed in")}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.googleLogo}>G</Text>
-          <Text style={styles.googleButtonText}>Sign in with Google</Text>
-        </TouchableOpacity>
       </View>
     </KeyboardAvoidingView> 
   </SafeAreaView>

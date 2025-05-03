@@ -89,7 +89,6 @@ const TodoList: React.FC<TodoListProps> = ({
       </TouchableOpacity>
     </View>
   );
-
   const pickerRef: any = useRef(null);
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
   useEffect(() => {
@@ -142,10 +141,10 @@ const TodoList: React.FC<TodoListProps> = ({
         daily:todo.isDaily || false,
     });
     bottomSheetModalRef.current?.present();
-  }, [changeShowInputFromChild]); 
+  }, []); 
   const handleUpdateTodo = async () => {
     if (!selectedTodo) return;
-
+    bottomSheetModalRef.current?.dismiss();
     const formattedTime = editForm.dueTime.toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit',
@@ -160,7 +159,7 @@ const TodoList: React.FC<TodoListProps> = ({
         dueDate: editForm.dueDate.toISOString().split('T')[0],
         dueTime: formattedTime, 
       });
-      bottomSheetModalRef.current?.dismiss();
+      
     } catch (error) {
       console.error("Update failed:", error); 
       Alert.alert('Error', 'Failed to update todo');
@@ -231,9 +230,7 @@ const TodoList: React.FC<TodoListProps> = ({
       <BottomSheetModal
         onDismiss={() => changeShowInputFromChild(true)}
         ref={bottomSheetModalRef}
-        onChange={(index) => {
-            setIsBottomSheetActive(index >= 0);
-          }}
+
         enablePanDownToClose
         style={styles.bottomSheet}
         backgroundStyle={styles.bottomSheetBackground}
@@ -251,7 +248,7 @@ const TodoList: React.FC<TodoListProps> = ({
           <TextInput
             style={styles.desc}
             value={editForm.desc}
-            onChangeText={(text) => setEditForm(prev => ({ ...prev, desc: text }))} // Correct key 'desc'
+            onChangeText={(text) => setEditForm(prev => ({ ...prev, desc: text }))}
             placeholder="Description"
             placeholderTextColor={colors.secondText}
             multiline
