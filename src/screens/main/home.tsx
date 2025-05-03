@@ -325,7 +325,6 @@ const TodoListScreen = () => {
       const querySnapshot = await getDocs(q);
       await deleteDoc(doc(db, 'todo_status', querySnapshot.docs[0].id));
     } catch (error) {
-      Alert.alert('Error', 'Failed to delete todo');
     }
   };
   const toggleTaskCompletion = async (todo: Todo) => {
