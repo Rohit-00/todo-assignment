@@ -19,13 +19,12 @@ import { serverTimestamp } from 'firebase/firestore';
 import app from '../../../utils/firebase';
 import { colors } from '../../../utils/colors';
 import Feather from '@expo/vector-icons/Feather';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import {Picker} from '@react-native-picker/picker';
 import TodoList from '../../components/todoList';
-import {ExpandableCalendar, AgendaList, CalendarProvider, WeekCalendar} from 'react-native-calendars';
+import { CalendarProvider, WeekCalendar} from 'react-native-calendars';
 import * as Notifications from 'expo-notifications';
 import * as Network from 'expo-network';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import AddTodo from '../../components/addTodo';
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -84,17 +83,10 @@ const today = new Date().toISOString().split('T')[0]
 const TodoListScreen = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [newTaskText, setNewTaskText] = useState('');
-  const [desc , setDesc] = useState('')
   const [loading, setLoading] = useState(true);
   const [showInput, setShowInput] = useState(false);
-  const [keyboardVisible, setKeyboardVisible] = useState<boolean|null>(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedTime, setSelectedTime] = useState(new Date());
+  const [keyboardVisible, setKeyboardVisible] = useState<boolean|null>(null); 
   const [showAddButton, setShowAddButton] = useState(true);
-  const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('low');
-  const [isDaily, setIsDaily] = useState(false);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [todoStatus , setTodoStatus] = useState<TodoStatus[]>([])
   const [isConnected, setIsConnected] = useState<boolean>(true);
@@ -105,19 +97,16 @@ const TodoListScreen = () => {
       setIsConnected(networkState.isConnected!);
     };
   
-    const intervalId = setInterval(checkConnection, 5000); // Check every 5 seconds
-    checkConnection(); // Initial check
+    const intervalId = setInterval(checkConnection, 5000); 
+    checkConnection(); 
   
     return () => clearInterval(intervalId);
   }, []);
   
-  const pickerRef:any = useRef(null);
   const changeShowInputFromChild = (status:boolean) => {
     setShowAddButton(status)
   }
-  const openPriorityPicker = () => {
-    pickerRef.current?.focus();
-  };
+
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -142,14 +131,14 @@ const TodoListScreen = () => {
     requestPermissions();
   }, []);
   
-  const resetForm = () => {
-    setNewTaskText('');
-    setDesc('');
-    setSelectedDate(new Date());
-    setSelectedTime(new Date());
-    setPriority('low');
-    setIsDaily(false);
-  }
+  // const resetForm = () => {
+  //   setNewTaskText('');
+  //   setDesc('');
+  //   setSelectedDate(new Date());
+  //   setSelectedTime(new Date());
+  //   setPriority('low');
+  //   setIsDaily(false);
+  // }
   useEffect(() => {
     const showSubscription = Keyboard.addListener("keyboardDidShow", () => {
       setKeyboardVisible(true);
@@ -159,11 +148,11 @@ const TodoListScreen = () => {
     });
     if(showInput){
       if(!keyboardVisible){
-        if(!showTimePicker){
+
         setShowInput(false)
         setShowAddButton(true);
-        resetForm()
-        }
+        // resetForm()
+        
       }
     }
     
@@ -201,19 +190,7 @@ const TodoListScreen = () => {
     return date ? new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '2:00PM';
   };
 
-  const handleDateChange = (event: any, date?: Date) => {
-    setShowDatePicker(false);
-    if (date) {
-      setSelectedDate(date);
-    }
-  };
-  
-  const handleTimeChange = (event: any, time?: Date) => {
-    setShowTimePicker(false);
-    if (time) {
-      setSelectedTime(time);
-    }
-  };
+
 
   useEffect(() => {
     const userId = auth.currentUser?.uid;
@@ -274,11 +251,11 @@ const TodoListScreen = () => {
     return () => {unsubscribe();unsubscribeTodoStatus();};
   }, [date]);
 
-  const addTodo = async () => {
+  const addTodo = async (text:string,desc:string,selectedDate:Date,selectedTime:Date,priority:string,isDaily:boolean) => {
     if (newTaskText.trim().length === 0) return;
     setShowInput(false);
     setShowAddButton(true)
-    resetForm()
+    // resetForm()
     let notificationId = null;
     if(isDaily){
       notificationId = await scheduleTaskNotificationDaily(newTaskText,desc,selectedTime)
@@ -289,7 +266,7 @@ const TodoListScreen = () => {
     try {
       await addDoc(collection(db, "todo"), {
         user: user?.uid,
-        text: newTaskText,
+        text: text,
         completed: false,
         description: desc,
         createdAt: serverTimestamp(),
@@ -393,7 +370,7 @@ const TodoListScreen = () => {
       
       </View>
  
-      <View style={styles.calendarContainer}> 
+    <View style={styles.calendarContainer}> 
   <CalendarProvider 
     date={today}
     style={styles.calendarProvider}
@@ -444,117 +421,7 @@ const TodoListScreen = () => {
 )}
 
       {showInput && (
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            value={newTaskText}
-            onChangeText={setNewTaskText}
-            placeholder="Do some work..."
-            autoFocus={true}
-            onSubmitEditing={addTodo}
-          />
-          <TextInput
-            style={styles.desc}
-            value={desc}
-            onChangeText={setDesc}
-            placeholder="Description"
-          
-            onSubmitEditing={addTodo}
-          />
-         <View style={styles.taskDetails}>
-<TouchableOpacity 
-  style={styles.detailButton}
-  onPress={openPriorityPicker}
->
-  <Feather 
-    name="flag" 
-    size={14} 
-    color={getPriorityColor(priority)} 
-  />
-  <Text style={[
-    styles.detailButtonText,
-    { color: getPriorityColor(priority) }
-  ]}>
-    {priority.charAt(0).toUpperCase() + priority.slice(1)}
-  </Text>
-  <Picker
-    ref={pickerRef}
-    selectedValue={priority}
-    onValueChange={(itemValue) => setPriority(itemValue)}
-    style={{ height: 0, width: 0, opacity: 0 }}
-  >
-    <Picker.Item 
-      label="Low Priority" 
-      value="low" 
-      color={getPriorityColor('low')} 
-    />
-    <Picker.Item 
-      label="Medium Priority" 
-      value="medium" 
-      color={getPriorityColor('medium')} 
-    />
-    <Picker.Item 
-      label="High Priority" 
-      value="high" 
-      color={getPriorityColor('high')} 
-    />
-  </Picker>
-</TouchableOpacity>
-  
-  <TouchableOpacity 
-    style={styles.detailButton}
-    onPress={() => setShowDatePicker(true)}
-  >
-    <Feather name="calendar" size={14} color={colors.secondText} />
-    <Text style={styles.detailButtonText}>
-      {selectedDate.toLocaleDateString()}
-    </Text>
-  </TouchableOpacity>
-  
-  <TouchableOpacity 
-    style={styles.detailButton}
-    onPress={() => setShowTimePicker(true)}
-  >
-    <Feather name="clock" size={14} color={colors.secondText}/>
-    <Text style={styles.detailButtonText}>
-      {selectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-    </Text>
-  </TouchableOpacity>
-  <TouchableOpacity 
-    style={isDaily?styles.dailyButton:styles.detailButton}
-    onPress={() => setIsDaily(!isDaily)}
-  >
-      <Text style={isDaily?styles.dailyButtonText:styles.checkboxLabel}>Daily</Text>
-
-  </TouchableOpacity>
-</View>
-
-{showDatePicker && (
-  <DateTimePicker
-    value={selectedDate}
-    mode="date"
-    display="default"
-    onChange={handleDateChange}
-    minimumDate={new Date()}
-  />
-)}
-
-{showTimePicker && (
-  <DateTimePicker
-    value={selectedTime}
-    mode="time"
-    display="default"
-    onChange={handleTimeChange}
-  />
-)}
-          <TouchableOpacity 
-            style={styles.addTaskButton}
-            onPress={addTodo}
-          >
-            <Text style={styles.addTaskButtonText}>Add</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      <AddTodo addTodo={addTodo}/>  )}
 
      {!showInput&& showAddButton &&<TouchableOpacity 
         style={styles.addButton}
@@ -622,122 +489,11 @@ const styles = StyleSheet.create({
     color: 'white',
     lineHeight: 56,
   },
-  inputContainer: {
-    borderTopLeftRadius:10,
-    borderTopRightRadius:10,
-    position: 'absolute',
-    bottom: 0,
-    flexDirection: 'column',
-    backgroundColor: 'white',
-    width:"100%",
-    padding: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
-    zIndex: 100,
-  },
-  input: {
-    flex: 1,
-    padding: 5,
-    fontSize: 20,
-  },
-  desc:{
-    flex: 1,
-    padding: 5,
-    fontSize:14
-  },
-  taskDetails:{
-    flex:1,
-    flexDirection:'row',
-    margin:5,
-    gap:8
-  },
-  detailButton:{
-    flexDirection:'row',
-    alignItems:'baseline',
-    gap:2,
-    backgroundColor:colors.buttonBackground,
-    paddingHorizontal:10,
-    paddingVertical:5,
-    borderRadius:5
-  },
-  dailyButton:{
-    flexDirection:'row',
-    alignItems:'baseline',
-    gap:2,
-    backgroundColor:colors.primary,
-    paddingHorizontal:10,
-    paddingVertical:5,
-    borderRadius:5
-  },
-  dailyButtonText:{
-    color:'white'
-  },
-  detailButtonText:{
-    color:colors.secondText
-  },
-  addTaskButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 8,
-    width:100,
-    height:40,
-    alignSelf:'flex-end',
-    paddingHorizontal: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 10,
-  },
-  addTaskButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingBottom: 50,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#999',
-    textAlign: 'center',
-  },
-  taskTextContainer: {
-    flex: 1,
-    flexDirection: 'column',
-  },
-  priorityIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-    gap: 4,
-  },
-  priorityText: {
-    fontSize: 12,
-    textTransform: 'capitalize',
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    marginBottom: 10,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderWidth: 2,
-    borderColor: colors.primary,
-    borderRadius: 6,
-    marginRight: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxLabel: {
-    fontSize: 14,
-    color: '#333',
   },
   calendarContainer: {
     height: '10%', 
