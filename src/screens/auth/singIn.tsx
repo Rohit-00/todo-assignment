@@ -33,15 +33,6 @@ const SignInScreen = ({ navigation }:any) => {
     }
   };
 
-  const signInWithGoogle = async () => {
-    try {
-      const result = await signInWithPopup(auth, provider);
-      console.log('User signed in:', result.user.uid);
-    } catch (error:any) {
-      Alert.alert('Error', error.message);
-    }
-  };
-
   return (
     <SafeAreaView style={styles.container}>
     <StatusBar style="auto" />
