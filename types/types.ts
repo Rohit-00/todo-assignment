@@ -20,4 +20,13 @@ type TodoStatus = {
   createdAt:Date;
 }
 
+//in addTodo.tsx
+type FormState = {
+  text: string;
+  desc: string;
+  date: Date;
+  time: Date;
+  priority: 'low' | 'medium' | 'high';
+  isDaily: boolean;
+}
 type SortOption = 'dueTime' | 'priority' | 'default';
