@@ -81,3 +81,8 @@ Start the app
 ```bash
   npx expo start
 ```
+
+## Future Scope
+- Add a local database (expo sqlite)
+- Add google oauth
+- Edit feature
