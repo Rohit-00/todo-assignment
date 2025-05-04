@@ -22,7 +22,7 @@ A cross-platform To-Do List app built using React Native with Expo, designed for
 
 ## Screenshots
 
-![App Screenshot](https://i.ibb.co/MTGSdPj/Screenshot-2025-05-04-13-31-42-49-744aaa3b62505820a805dca00bd469a9.jpg)
+![App Screenshot](https://i.ibb.co/ksnLbtnc/Screenshot-2025-05-04-13-31-42-49-744aaa3b62505820a805dca00bd469a9-1.jpg)
 
 ![App Screenshot](https://i.ibb.co/hJxmV85v/Screenshot-2025-05-04-13-32-12-94-744aaa3b62505820a805dca00bd469a9.jpg)
 
